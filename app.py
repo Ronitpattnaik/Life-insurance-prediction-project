@@ -101,7 +101,6 @@ df['Risk'] = le.fit_transform(df['Risk'])
 
 X = df[['Age',
         'Sex',
-        'Job',
         'Housing',
         'Credit amount',
         'Duration']]
@@ -132,12 +131,15 @@ if sex_text == "male":
 else:
     sex = 0
 
-job = st.number_input(
-    "Job (0-3)",
-    0,
-    3,
-    1
+income = st.number_input(
+    "Monthly Income (₹)",
+    min_value=5000,
+    max_value=500000,
+    value=30000,
+    step=5000
 )
+
+st.write(f"Selected Income: ₹ {income:,}")
 
 housing_text = st.selectbox(
     "Housing",
@@ -171,13 +173,11 @@ duration = st.number_input(
 # -----------------------------
 # PREDICT BUTTON
 # -----------------------------
-
 if st.button("Predict Risk"):
 
     prediction = model.predict([[
         age,
         sex,
-        job,
         housing,
         credit_amount,
         duration
@@ -186,7 +186,6 @@ if st.button("Predict Risk"):
     probability = model.predict_proba([[
         age,
         sex,
-        job,
         housing,
         credit_amount,
         duration
@@ -194,35 +193,47 @@ if st.button("Predict Risk"):
 
     risk_score = probability[0][1] * 100
 
-    st.subheader("Prediction Result")
+    high_risk_reason = []
 
-    if prediction[0] == 1:
+    # Manual business logic
+
+    if age > 65:
+        high_risk_reason.append("High age")
+
+    if income < 20000:
+        high_risk_reason.append("Low monthly income")
+
+    if credit_amount > 800000:
+        high_risk_reason.append("Very high credit amount")
+
+    if duration > 48:
+        high_risk_reason.append("Long repayment duration")
+
+    if housing == 2:
+        high_risk_reason.append("Customer lives in rented house")
+
+    # Final Decision
+
+    if len(high_risk_reason) >= 2:
 
         st.markdown(
             f'''
             <div class='result-bad'>
             ❌ HIGH RISK CUSTOMER<br><br>
-            Risk Probability: {risk_score:.2f}%
+            Risk Score: {risk_score:.2f}%
             </div>
             ''',
             unsafe_allow_html=True
         )
 
-        st.warning("Reasons for High Risk")
+        st.subheader("Why Customer is High Risk?")
 
-        if credit_amount > 1000000:
-            st.write("• Credit amount is very high")
+        for reason in high_risk_reason:
+            st.write(f"• {reason}")
 
-        if duration > 36:
-            st.write("• Loan duration is too long")
-
-        if age < 21:
-            st.write("• Applicant age is low")
-
-        if housing == 2:
-            st.write("• Customer lives in rented house")
-
-        st.info("Suggestion: Reduce loan amount or duration.")
+        st.warning(
+            "Suggestion: Reduce loan amount or repayment duration."
+        )
 
     else:
 
@@ -230,10 +241,10 @@ if st.button("Predict Risk"):
             f'''
             <div class='result-good'>
             ✅ LOW RISK CUSTOMER<br><br>
-            Approval Probability: {100-risk_score:.2f}%
+            Approval Score: {100-risk_score:.2f}%
             </div>
             ''',
             unsafe_allow_html=True
         )
 
-        st.success("Customer profile looks financially stable.")
+        st.success("Customer profile appears financially stable.")
